@@ -16,7 +16,7 @@ NugetPackager.exeを実行します。
 
 ## Licence
 
-[MIT](https://github.com/rougemeilland/nugetpackager/LICENCE.txt)
+[MIT](https://github.com/rougemeilland/nugetpackager/blob/master/LICENCE.txt)
 
 ## Author
 
