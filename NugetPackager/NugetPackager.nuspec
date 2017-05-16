@@ -14,6 +14,6 @@
     <tags>Sample</tags>
   </metadata>
   <files>
-    <file src="bin\$configuration$\$id$.dll" target="lib\net46\" />
+    <file src="bin\$configuration$\$id$.exe" target="lib\net46\" />
   </files>
 </package>
