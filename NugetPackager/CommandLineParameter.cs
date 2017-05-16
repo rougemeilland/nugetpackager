@@ -1,10 +1,10 @@
-﻿/**
-CommandLineParameter.cs
+﻿/*
+  CommandLineParameter.cs
 
-Copyright (c) 2017 Palmtree Software
+  Copyright (c) 2017 Palmtree Software
 
-This software is released under the MIT License.
-https://opensource.org/licenses/MIT
+  This software is released under the MIT License.
+  https://opensource.org/licenses/MIT
 */
 
 using System;
