@@ -123,7 +123,7 @@ namespace NugetPackager
             using (var file_stream = new FileStream(nuspec_file.FullName, FileMode.Create, FileAccess.Write, FileShare.None))
             using (var writer = new StreamWriter(file_stream, Encoding.UTF8))
             {
-                writer.Write(string.Format(reader.ReadToEnd(), repository_name, license_url.AbsoluteUri));
+                writer.Write(string.Format(reader.ReadToEnd(), license_url.AbsoluteUri, repository_name));
                 writer.Flush();
             }
         }
