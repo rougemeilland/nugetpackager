@@ -1,0 +1,19 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>ffxivmateriacalculator</licenseUrl>
+    <projectUrl>YOUR_PROJECT_URL/https://opensource.org/licenses/MIT</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <copyright>$copyright$</copyright>
+    <tags>Sample</tags>
+  </metadata>
+  <files>
+    <file src="bin\$configuration$\$id$.dll" target="lib\net46\" />
+  </files>
+</package>
