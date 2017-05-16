@@ -1,4 +1,4 @@
-nuget Package Managaer
+nuget Packager
 ====
 
 c#開発においてnugetパッケージ作成を支援します。
