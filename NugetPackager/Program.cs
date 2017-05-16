@@ -53,11 +53,7 @@ namespace NugetPackager
                             var package_file_pattern = new Regex(string.Format(package_file_pattern_text, assembly_name), RegexOptions.Compiled);
                             var package_file = parameter.PackageDir.EnumerateFiles("*").Where(file => package_file_pattern.IsMatch(file.Name) == true).OrderByDescending(file => file.LastWriteTimeUtc).FirstOrDefault();
                             if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc))
-                            {
-                                if (package_file != null)
-                                    package_file.Delete();
                                 ExecuteNuget(parameter, project_file);
-                            }
                         }
                         catch
                         {
