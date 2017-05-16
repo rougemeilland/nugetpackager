@@ -1,4 +1,13 @@
-﻿using System;
+﻿/**
+Program.cs
+
+Copyright (c) 2017 Palmtree Software
+
+This software is released under the MIT License.
+https://opensource.org/licenses/MIT
+*/
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
