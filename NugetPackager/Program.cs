@@ -25,7 +25,7 @@ namespace NugetPackager
         static void Main(string[] args)
         {
             var project_file_etension_pattern = new Regex(@"\.csproj$", RegexOptions.Compiled);
-            var package_file_pattern_text = @"^{0}\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.nupkg$";
+            var package_file_pattern_text = @"^{0}\.[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.nupkg$";
             CommandLineParameter parameter;
             try
             {
@@ -41,8 +41,9 @@ namespace NugetPackager
             {
                 SearchRepositoryDir(parameter.RepositoryDir, (repository_dir, repository_name) =>
                 {
-                    SearchProjectFile(parameter.RepositoryDir, project_file =>
+                    SearchProjectFile(repository_dir, project_file =>
                     {
+                        //System.Diagnostics.Debug.WriteLine("walking '" + project_file.FullName + "'...");
                         if (!project_file.Name.StartsWith("Test."))
                         {
                             var nuspec_file = new FileInfo(project_file_etension_pattern.Replace(project_file.FullName, ".nuspec"));
@@ -53,16 +54,18 @@ namespace NugetPackager
                                 string assembly_name;
                                 string output_dir;
                                 GetAssemblyName(project_file, out assembly_name, out output_dir);
-                                var binary_file = new[] { assembly_name + ".exe", ".dll" }.Select(file_name => project_file.Directory.GetFile(output_dir, file_name)).Where(file => file.Exists == true).FirstOrDefault();
+                                var binary_file = new[] { assembly_name + ".exe", assembly_name + ".dll" }.Select(file_name => project_file.Directory.GetFile(output_dir, file_name)).Where(file => file.Exists == true).FirstOrDefault();
                                 var package_file_pattern = new Regex(string.Format(package_file_pattern_text, assembly_name), RegexOptions.Compiled);
                                 var package_file = parameter.PackageDir.EnumerateFiles("*")
                                                    .Where(file => package_file_pattern.IsMatch(file.Name) == true)
                                                    .OrderByDescending(file => file.LastWriteTimeUtc)
                                                    .FirstOrDefault();
-                                if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc))
+                                if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc || package_file.LastWriteTimeUtc < nuspec_file.LastWriteTimeUtc))
                                 {
-                                    System.Diagnostics.Debug.WriteLine("binary file: " + (binary_file != null && binary_file.Exists ? binary_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
-                                    System.Diagnostics.Debug.WriteLine("package file: " + (package_file != null && package_file.Exists ? package_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
+                                    LogFileInfo("csproj file", project_file);
+                                    LogFileInfo(".nuspec file", nuspec_file);
+                                    LogFileInfo("binary file", binary_file);
+                                    LogFileInfo("package file", package_file);
                                     ExecuteNuget(parameter, project_file);
                                 }
                             }
@@ -75,6 +78,11 @@ namespace NugetPackager
                 Console.WriteLine("ENTERキーを押すと再実行します。");
                 Console.ReadLine();
             }
+        }
+
+        private static void LogFileInfo(string title, FileInfo file)
+        {
+            System.Diagnostics.Debug.WriteLine(title + ": " + (file != null && file.Exists ? string.Format("'{0}'({1:yyyy/MM/dd HH:mm:ss.fff})", file.FullName, file.LastWriteTime) : "(none)"));
         }
 
         private static void GetAssemblyName(FileInfo project_file, out string assembly_name, out string output_dir)
