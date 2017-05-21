@@ -43,29 +43,32 @@ namespace NugetPackager
                 {
                     SearchProjectFile(parameter.RepositoryDir, project_file =>
                     {
-                        var nuspec_file = new FileInfo(project_file_etension_pattern.Replace(project_file.FullName, ".nuspec"));
-                        if (!nuspec_file.Exists)
-                            CreateNuspecFile(nuspec_file, repository_name, parameter.LicenseUrl);
-                        try
+                        if (!project_file.Name.StartsWith("Test."))
                         {
-                            string assembly_name;
-                            string output_dir;
-                            GetAssemblyName(project_file, out assembly_name, out output_dir);
-                            var binary_file = new[] { assembly_name + ".exe", ".dll" }.Select(file_name => project_file.Directory.GetFile(output_dir, file_name)).Where(file => file.Exists == true).FirstOrDefault();
-                            var package_file_pattern = new Regex(string.Format(package_file_pattern_text, assembly_name), RegexOptions.Compiled);
-                            var package_file = parameter.PackageDir.EnumerateFiles("*")
-                                               .Where(file => package_file_pattern.IsMatch(file.Name) == true)
-                                               .OrderByDescending(file => file.LastWriteTimeUtc)
-                                               .FirstOrDefault();
-                            if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc))
+                            var nuspec_file = new FileInfo(project_file_etension_pattern.Replace(project_file.FullName, ".nuspec"));
+                            if (!nuspec_file.Exists)
+                                CreateNuspecFile(nuspec_file, repository_name, parameter.LicenseUrl);
+                            try
                             {
-                                System.Diagnostics.Debug.WriteLine("binary file: " + (binary_file != null  && binary_file.Exists ? binary_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
-                                System.Diagnostics.Debug.WriteLine("package file: " + (package_file != null && package_file.Exists ? package_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
-                                ExecuteNuget(parameter, project_file);
+                                string assembly_name;
+                                string output_dir;
+                                GetAssemblyName(project_file, out assembly_name, out output_dir);
+                                var binary_file = new[] { assembly_name + ".exe", ".dll" }.Select(file_name => project_file.Directory.GetFile(output_dir, file_name)).Where(file => file.Exists == true).FirstOrDefault();
+                                var package_file_pattern = new Regex(string.Format(package_file_pattern_text, assembly_name), RegexOptions.Compiled);
+                                var package_file = parameter.PackageDir.EnumerateFiles("*")
+                                                   .Where(file => package_file_pattern.IsMatch(file.Name) == true)
+                                                   .OrderByDescending(file => file.LastWriteTimeUtc)
+                                                   .FirstOrDefault();
+                                if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc))
+                                {
+                                    System.Diagnostics.Debug.WriteLine("binary file: " + (binary_file != null && binary_file.Exists ? binary_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
+                                    System.Diagnostics.Debug.WriteLine("package file: " + (package_file != null && package_file.Exists ? package_file.LastWriteTimeUtc.ToString("yyyy/MM/dd HH:mm:ss.fff") : "(none)"));
+                                    ExecuteNuget(parameter, project_file);
+                                }
                             }
-                        }
-                        catch
-                        {
+                            catch
+                            {
+                            }
                         }
                     });
                 });
