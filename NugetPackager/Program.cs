@@ -21,6 +21,7 @@ namespace NugetPackager
     class Program
     {
         private static Regex _condition_property_pattern = new Regex("^ ?'\\$\\(Configuration\\)\\|\\$\\(Platform\\)'? == ?'Release\\|AnyCPU' ?$", RegexOptions.Compiled);
+        private static Regex _nuspec_setting_value_pattern = new Regex(@"^[^\$]*\$(?<variable>[^\$]*?)\$", RegexOptions.Compiled);
 
         static void Main(string[] args)
         {
@@ -53,19 +54,30 @@ namespace NugetPackager
                             {
                                 string assembly_name;
                                 string output_dir;
-                                GetAssemblyName(project_file, out assembly_name, out output_dir);
+                                ParseProjectFile(project_file, out assembly_name, out output_dir);
                                 var binary_file = new[] { assembly_name + ".exe", assembly_name + ".dll" }.Select(file_name => project_file.Directory.GetFile(output_dir, file_name)).Where(file => file.Exists == true).FirstOrDefault();
-                                var package_file_pattern = new Regex(string.Format(package_file_pattern_text, assembly_name), RegexOptions.Compiled);
+                                string package_id;
+                                ParseNuspecFile(nuspec_file, variable_name =>
+                                {
+                                    switch (variable_name)
+                                    {
+                                        case "id":
+                                            return (assembly_name);
+                                        default:
+                                            throw new ApplicationException();
+                                    }
+                                }, out package_id);
+                                var package_file_pattern = new Regex(string.Format(package_file_pattern_text, package_id), RegexOptions.Compiled);
                                 var package_file = parameter.PackageDir.EnumerateFiles("*")
                                                    .Where(file => package_file_pattern.IsMatch(file.Name) == true)
                                                    .OrderByDescending(file => file.LastWriteTimeUtc)
                                                    .FirstOrDefault();
+                                LogFileInfo("csproj file", project_file);
+                                LogFileInfo(".nuspec file", nuspec_file);
+                                LogFileInfo("binary file", binary_file);
+                                LogFileInfo("package file", package_file);
                                 if (binary_file != null && binary_file.Exists && (package_file == null || package_file.Exists == false || package_file.LastWriteTimeUtc < binary_file.LastWriteTimeUtc || package_file.LastWriteTimeUtc < nuspec_file.LastWriteTimeUtc))
                                 {
-                                    LogFileInfo("csproj file", project_file);
-                                    LogFileInfo(".nuspec file", nuspec_file);
-                                    LogFileInfo("binary file", binary_file);
-                                    LogFileInfo("package file", package_file);
                                     ExecuteNuget(parameter, project_file);
                                 }
                             }
@@ -85,7 +97,7 @@ namespace NugetPackager
             System.Diagnostics.Debug.WriteLine(title + ": " + (file != null && file.Exists ? string.Format("'{0}'({1:yyyy/MM/dd HH:mm:ss.fff})", file.FullName, file.LastWriteTime) : "(none)"));
         }
 
-        private static void GetAssemblyName(FileInfo project_file, out string assembly_name, out string output_dir)
+        private static void ParseProjectFile(FileInfo project_file, out string assembly_name, out string output_dir)
         {
             var doc = new XmlDocument();
             doc.Load(project_file.FullName);
@@ -112,6 +124,47 @@ namespace NugetPackager
                          .FirstOrDefault();
             if (output_dir == null)
                 throw new ApplicationException();
+        }
+
+        private static void ParseNuspecFile(FileInfo nuspec_file, Func<string, string> variable_resolver, out string package_id)
+        {
+            var doc = new XmlDocument();
+            doc.Load(nuspec_file.FullName);
+            var node_package = doc.ChildNodes
+                               .Cast<XmlNode>()
+                               .Where(node => node.Name == "package")
+                               .FirstOrDefault();
+            if (node_package == null)
+                throw new ApplicationException();
+            var node_metadata = node_package.ChildNodes
+                                .Cast<XmlNode>()
+                                .Where(node => node.Name == "metadata")
+                                .FirstOrDefault();
+            if (node_metadata == null)
+                throw new ApplicationException();
+            var raw_package_id = node_metadata.ChildNodes
+                                 .Cast<XmlNode>()
+                                 .Where(node => node.Name == "id")
+                                 .Select(node => node.InnerText)
+                                 .FirstOrDefault();
+            if (raw_package_id == null)
+                throw new ApplicationException();
+            package_id = EvaluateNuspecSettingValue(raw_package_id, variable_resolver);
+        }
+
+        private static string EvaluateNuspecSettingValue(string text, Func<string, string> variable_resolver)
+        {
+            while (true)
+            {
+                var m = _nuspec_setting_value_pattern.Match(text);
+                if (!m.Success)
+                    break;
+                var m_variable = m.Groups["variable"];
+                if (!m_variable.Success)
+                    throw new ApplicationException();
+                text = text.Substring(0, m_variable.Index - 1) + variable_resolver(m_variable.Value) + text.Substring(m_variable.Index + m_variable.Length + 1);
+            }
+            return (text);
         }
 
         private static void ExecuteNuget(CommandLineParameter parameter, FileInfo project_file)
